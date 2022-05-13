@@ -1,0 +1,130 @@
+version: "3.5"
+services:
+  backend:
+    image: nginx:latest
+    container_name: backend
+    ports:
+      - 3001:3001
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx-proxy.conf:/etc/nginx/proxy.conf:ro
+    networks:
+      - hey-taxi-network
+    depends_on:
+      - identity-api
+      - location-api
+    profiles:
+      - "api"
+      - "proxy"
+
+  identity-api:
+    image: ghcr.io/orkungursel/hey-taxi-identity-api:latest
+    container_name: identity-api
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    volumes:
+      - "./certs/private.pem:/etc/certs/access-token-private-key.pem:ro"
+      - "./certs/public.pem:/etc/certs/access-token-public-key.pem:ro"
+      - "./certs/private.pem:/etc/certs/refresh-token-private-key.pem:ro"
+      - "./certs/public.pem:/etc/certs/refresh-token-public-key.pem:ro"
+    networks:
+      - hey-taxi-network
+    depends_on:
+      - mongo
+    profiles:
+      - "api"
+
+  location-api:
+    image: ghcr.io/orkungursel/hey-taxi-location-api:latest
+    container_name: location-api
+    environment:
+      - REDIS_ADDR=redis:6379
+      - AUTH_GRPC_HOST=identity-api
+      - AUTH_GRPC_PORT=50051
+    volumes:
+      - "./certs/public.pem:/etc/certs/access-token-public-key.pem:ro"
+    networks:
+      - hey-taxi-network
+    depends_on:
+      - redis
+    profiles:
+      - "api"
+
+  vehicle-api:
+    build: ../hey-taxi-vehicle-api/
+    container_name: vehicle-api
+    #image: ghcr.io/orkungursel/hey-taxi-vehicle-api:v1.3.4
+    environment:
+      - ConnectionStrings__DefaultConnection=User ID=postgres;Password=postgres;Server=postgres;Port=5432;Database=postgres;Integrated Security=true;Pooling=true;
+      - Services__UserDetailsServiceUri=http://identity-api:50051
+    volumes:
+      - "./certs/public.pem:/etc/certs/access-token-public-key.pem:ro"
+    networks:
+      - hey-taxi-network
+    depends_on:
+      - postgres
+    profiles:
+      - "api"
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-volume:/data/db
+    networks:
+      - hey-taxi-network
+    profiles:
+      - "infrastructure"
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-volume:/data
+    networks:
+      - hey-taxi-network
+    profiles:
+      - "infrastructure"
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - hey-taxi-network
+    profiles:
+      - "infrastructure"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-volume:/var/lib/rabbitmq
+    networks:
+      - hey-taxi-network
+    profiles:
+      - "rabbit"
+
+volumes:
+  redis-volume:
+  mongo-volume:
+  postgres-volume:
+  rabbitmq-volume:
+
+networks:
+  hey-taxi-network:
+    name: hey-taxi-network
+    driver: bridge
