@@ -51,9 +51,8 @@ services:
       - "api"
 
   vehicle-api:
-    build: ../hey-taxi-vehicle-api/
+    image: ghcr.io/orkungursel/hey-taxi-vehicle-api:latest
     container_name: vehicle-api
-    #image: ghcr.io/orkungursel/hey-taxi-vehicle-api:v1.3.4
     environment:
       - ConnectionStrings__DefaultConnection=User ID=postgres;Password=postgres;Server=postgres;Port=5432;Database=postgres;Integrated Security=true;Pooling=true;
       - Services__UserDetailsServiceUri=http://identity-api:50051
