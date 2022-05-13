@@ -7,7 +7,7 @@
 
 ## Micro-services
 
-  | Service Name   | Host           | Ports            | Language   | Repository          |
+  | Name              | Host           | Ports            | Language   | Repository          |
   | ------------   | -------------- | ---------------- | ---------- | ------------------- |
   | `Frontend`     | `frontend`     | `:8080`          | Typescript | https://github.com/orkungursel/hey-taxi-frontend |
   | `Identity`     | `identity-api` | `:8080` `:50051` | Go         | https://github.com/orkungursel/hey-taxi-identity-api |
